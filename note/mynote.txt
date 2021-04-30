@@ -1,0 +1,310 @@
+this is a file is my personal study log
+
+Kamon 是一组用于监控运行在 JVM 上的应用的工具和框架
+
+ansible  自动化运维工具,
+ansible是新出现的自动化运维工具，基于Python开发，集合了众多运维工具（puppet、cfengine、chef、func、fabric）的优点，实现了批量系统配置、批量程序部署、批量运行命令等功能。
+ansible是基于模块工作的，本身没有批量部署的能力。真正具有批量部署的是ansible所运行的模块，ansible只是提供一种框架。主要包括：
+(1)、连接插件connection plugins：负责和被监控端实现通信；
+(2)、host inventory：指定操作的主机，是一个配置文件里面定义监控的主机；
+(3)、各种模块核心模块、command模块、自定义模块；
+(4)、借助于插件完成记录日志邮件等功能；
+(5)、playbook：剧本执行多个任务时，非必需可以让节点一次性运行多个任务。
+
+Cosmos DB
+
+Azure Cosmos DB 是一种用于新式应用开发的完全托管的 NoSQL 数据库。
+
+dashboard 仪表盘
+
+grafana确切的说是一个前端展示工具，将数据以非常美观直接的图形展示出来
+Prometheus n. 普罗米修斯
+
+
+wsk property set --apihost 'http://172.17.0.1:3233' --auth '23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP'
+
+auth.guest
+23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP
+
+
+sudo  wsk package list /whisk.system
+packages
+
+export http_proxy=http://aa:bb@127.0.0.1:8889/
+export https_proxy=http://aa:bb@127.0.0.1:8889/
+export ftp_proxy=http://aa:bb@127.0.0.1:8889/
+unset  http_proxy   https_proxy ftp_proxy
+
+sudo wsk action create helloGo hello.go
+sudo wsk action invoke helloGo --result --param name li
+
+sudo wskdeploy -m manifest.yaml
+
+
+wsk package list  xx
+wsk package get --summary xxx
+
+sudo wsk  trigger create sayhello
+wsk  trigger list
+wsk trigger fire sayhello --param name li
+    
+wsk rule create sayhellor sayhello helloGo
+wsk trigger fire sayhello --param name lzx
+
+log     
+wsk activation list --limit 2
+wsk activation result 6a1a538e1af0471b9a538e1af0071b9a
+
+
+docker  pull 超时
+/etc/docker，没有daemon.json文件就自己新建一个
+阿里云申请 加速
+{
+ "registry-mirrors": ["https://jrishnw1.mirror.aliyuncs.com"]
+}
+systemctl restart docker.service
+
+
+tool 爆红
+
+
+invoker  reacitve 发现。 print
+
+
+
+[2021-04-21T14:52:18.909Z] [INFO] [#tid_X9oLYlUgKnog6H1CyQVkNzyvyZxBj96b] PUT /api/v1/namespaces/_/actions/helloGo overwrite=false
+[2021-04-21T14:52:18.912Z] [INFO] [#tid_X9oLYlUgKnog6H1CyQVkNzyvyZxBj96b] [BasicAuthenticationDirective] authenticate: 23bc46b1-71f6-4ed5-8c54-816aa4f8c502
+[2021-04-21T14:52:18.912Z] [INFO] [#tid_X9oLYlUgKnog6H1CyQVkNzyvyZxBj96b] [Identity] [GET] serving from datastore: CacheKey(23bc46b1-71f6-4ed5-8c54-816aa4f8c502) [marker:database_cacheMiss_counter:3]
+[2021-04-21T14:52:18.913Z] [INFO] [#tid_X9oLYlUgKnog6H1CyQVkNzyvyZxBj96b] [MemoryArtifactStore] [QUERY] 'subjects' searching 'subjects.v2.0.0/identities [marker:database_queryView_start:3]
+[2021-04-21T14:52:18.913Z] [INFO] [#tid_X9oLYlUgKnog6H1CyQVkNzyvyZxBj96b] [MemoryArtifactStore] [GET] 'subjects' finding document: 'guest/limits' [marker:database_getDocument_start:4]
+[2021-04-21T14:52:18.914Z] [INFO] [#tid_X9oLYlUgKnog6H1CyQVkNzyvyZxBj96b] [MemoryArtifactStore]  [marker:database_getDocument_finish:4:0]
+[2021-04-21T14:52:18.914Z] [INFO] [#tid_X9oLYlUgKnog6H1CyQVkNzyvyZxBj96b] [MemoryArtifactStore]  [marker:database_queryView_finish:5:1]
+[2021-04-21T14:52:18.918Z] [INFO] [#tid_X9oLYlUgKnog6H1CyQVkNzyvyZxBj96b] [WhiskAction] [GET] serving from datastore: CacheKey(guest/helloGo) [marker:database_cacheMiss_counter:9]
+[2021-04-21T14:52:18.919Z] [INFO] [#tid_X9oLYlUgKnog6H1CyQVkNzyvyZxBj96b] [MemoryArtifactStore] [GET] 'whisks' finding document: 'id: guest/helloGo' [marker:database_getDocument_start:9]
+[2021-04-21T14:52:18.919Z] [INFO] [#tid_X9oLYlUgKnog6H1CyQVkNzyvyZxBj96b] [MemoryArtifactStore]  [marker:database_getDocument_finish:9:0]
+[2021-04-21T14:52:18.919Z] [INFO] [#tid_X9oLYlUgKnog6H1CyQVkNzyvyZxBj96b] [WhiskAction] invalidating CacheKey(guest/helloGo)
+[2021-04-21T14:52:18.922Z] [INFO] [#tid_X9oLYlUgKnog6H1CyQVkNzyvyZxBj96b] [WhiskAction] write initiated on new cache entry
+[2021-04-21T14:52:18.929Z] [INFO] [#tid_X9oLYlUgKnog6H1CyQVkNzyvyZxBj96b] [MemoryArtifactStore] [PUT] 'whisks' saving document: 'id: guest/helloGo, rev: null' [marker:database_saveDocument_start:20]
+[2021-04-21T14:52:18.930Z] [INFO] [#tid_X9oLYlUgKnog6H1CyQVkNzyvyZxBj96b] [MemoryArtifactStore]  [marker:database_saveDocument_finish:21:1]
+[2021-04-21T14:52:18.930Z] [INFO] [#tid_X9oLYlUgKnog6H1CyQVkNzyvyZxBj96b] [WhiskAction] write all done, caching CacheKey(guest/helloGo) Cached
+[2021-04-21T14:52:18.933Z] [INFO] [#tid_X9oLYlUgKnog6H1CyQVkNzyvyZxBj96b] [BasicHttpService] [marker:http_put.200_counter:23:23]
+
+
+(action: ,guest/helloGo@0.0.1)
+( revision: ,sha256-f120d02eb67e79c518e86ada392c555b7a3b4179391f2525ab6aea27aa8035be)
+(activationId: ,72ed0aa85b2f4d49ad0aa85b2f2d493e)
+(blocking:  ,true)
+(content: ,Some({"name":"li"}))
+ExecutableWhiskAction/guest/helloGo@0.0.1
+
+[2021-04-21T15:27:44.147Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [InvokerReactive]  [marker:invoker_activation_start:76]
+************invoke handleActivationMessage**********************
+[2021-04-21T15:27:44.150Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [WhiskAction] [GET] serving from datastore: CacheKey(guest/helloGo) [marker:database_cacheMiss_counter:79]
+[2021-04-21T15:27:44.150Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [MemoryArtifactStore] [GET] 'whisks' finding document: 'id: guest/helloGo, rev: sha256-32c6341998fbea8c50ee4ef0e5210f8596954697ac90e5af405c515fcdca091b' [marker:database_getDocument_start:79]
+[2021-04-21T15:27:44.151Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [MemoryArtifactStore]  [marker:database_getDocument_finish:79:0]
+[2021-04-21T15:27:44.155Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [MemoryArtifactStore] [ATT_GET] 'whisks' finding attachment 'mem:cGFja2FnZSBtYWluCgppbXBvcnQgImZtdCIKCi8vIE1haW4gZnVuY3Rpb24gZm9yIHRoZSBhY3Rpb24KZnVuYyBNYWluKG9iaiBtYXBbc3RyaW5nXWludGVyZmFjZXt9KSBtYXBbc3RyaW5nXWludGVyZmFjZXt9IHsKCW5hbWUsIG9rIDo9IG9ialsibmFtZSJdLihzdHJpbmcpCglpZiAhb2sgewoJCW5hbWUgPSAic3RyYW5nZXIiCgl9CglmbXQuUHJpbnRmKCJuYW1lPSVzXG4iLCBuYW1lKQoJbXNnIDo9IG1ha2UobWFwW3N0cmluZ11pbnRlcmZhY2V7fSkKCW1zZ1sibXNnIl0gPSAiSGVsbG8sICIgKyBuYW1lICsgIiEiCglyZXR1cm4gbXNnCn0K' of document 'id: guest/helloGo, rev: sha256-32c6341998fbea8c50ee4ef0e5210f8596954697ac90e5af405c515fcdca091b' [marker:database_getDocumentAttachment_start:84]
+[2021-04-21T15:27:44.173Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [WhiskAction] write initiated on existing cache entry, invalidating CacheKey(guest/helloGo), tid ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl, state WriteInProgress
+[2021-04-21T15:27:44.174Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [WhiskAction] write all done, caching CacheKey(guest/helloGo) Cached
+
+[2021-04-21T15:27:44.220Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [DockerClientWithFileAccess] running /usr/bin/docker pull openwhisk/action-golang-v1.15:nightly (timeout: 10 minutes) [marker:invoker_docker.pull_start:149]
+[2021-04-21T15:27:44.221Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [ContainerPool] containe nrStart containerState: cold container: None activations: 1 of max 1 action: helloGo namespace: guest activationId: f149f7477a364aa689f7477a369aa622 [marker:invoker_containerStart.cold_counter:149]
+[2021-04-21T15:27:59.159Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [MemoryArtifactStore] [GET] 'activations' finding document: 'id: guest/f149f7477a364aa689f7477a369aa622' [marker:database_getDocument_start:15088]
+[2021-04-21T15:27:59.160Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [MemoryArtifactStore]  [marker:database_getDocument_finish:15088:0]
+[2021-04-21T15:27:59.795Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [DockerClientWithFileAccess]  [marker:invoker_docker.pull_finish:15723:15574]
+[2021-04-21T15:27:59.795Z] [INFO] [#tid_sid_unknown] [StandaloneDockerContainerFactory] Pulled OpenWhisk provided image openwhisk/action-golang-v1.15:nightly
+[2021-04-21T15:27:59.796Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [DockerClientWithFileAccess] running /usr/bin/docker run -d --cpu-shares 256 --memory 256m --memory-swap 256m --network bridge -e __OW_API_HOST=http://172.17.0.1:3233 --name wsk0_3_guest_helloGo --pids-limit 1024 --cap-drop NET_RAW --cap-drop NET_ADMIN --ulimit nofile=1024:1024 --log-driver json-file openwhisk/action-golang-v1.15:nightly (timeout: 1 minute) [marker:invoker_docker.run_start:15725]
+[2021-04-21T15:28:00.157Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [DockerClientWithFileAccess]  [marker:invoker_docker.run_finish:16086:361]
+[2021-04-21T15:28:00.158Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [DockerClientWithFileAccess] running /usr/bin/docker inspect --format {{.NetworkSettings.Networks.bridge.IPAddress}} 99a4e3c4f6a23d53ba5bfe1dcd05e2249e1f7771dfe0a2bf7fa540e46674e879 (timeout: 1 minute) [marker:invoker_docker.inspect_start:16087]
+[2021-04-21T15:28:00.198Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [DockerClientWithFileAccess]  [marker:invoker_docker.inspect_finish:16126:39]
+[2021-04-21T15:28:00.201Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [DockerContainer] sending initialization to ContainerId(99a4e3c4f6a23d53ba5bfe1dcd05e2249e1f7771dfe0a2bf7fa540e46674e879) ContainerAddress(172.17.0.4,8080) [marker:invoker_activationInit_start:16130]
+[2021-04-21T15:28:00.563Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [DockerContainer] initialization result: ok [marker:invoker_activationInit_finish:16491:358]
+[2021-04-21T15:28:00.566Z] [INFO] [#tid_sid_unknown] [ContainerProxy] resending up to 0 from 0 buffered jobs
+[2021-04-21T15:28:00.566Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [DockerContainer] sending arguments to /guest/helloGo at ContainerId(99a4e3c4f6a23d53ba5bfe1dcd05e2249e1f7771dfe0a2bf7fa540e46674e879) ContainerAddress(172.17.0.4,8080) [marker:invoker_activationRun_start:16495]
+[2021-04-21T15:28:00.572Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [DockerContainer] running result: ok [marker:invoker_activationRun_finish:16500:4]
+[2021-04-21T15:28:00.578Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [ContainerProxy]  [marker:invoker_collectLogs_start:16507]
+[2021-04-21T15:28:00.579Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [ExtendedDockerClient] running /usr/bin/docker logs 99a4e3c4f6a23d53ba5bfe1dcd05e2249e1f7771dfe0a2bf7fa540e46674e879 --since 1618990080 --until 1618990081 --timestamps (timeout: 2 seconds) [marker:invoker_docker.logs_start:16507]
+[2021-04-21T15:28:00.594Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [MessagingActiveAck] posted result of activation f149f7477a364aa689f7477a369aa622
+[2021-04-21T15:28:00.598Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [LeanBalancer] received result ack for 'f149f7477a364aa689f7477a369aa622'
+[2021-04-21T15:28:00.599Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [ActionsApi]  [marker:controller_blockingActivation_finish:16528:16481]
+[2021-04-21T15:28:00.602Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [BasicHttpService] [marker:http_post.200_counter:16530:16530]
+[2021-04-21T15:28:00.630Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [ExtendedDockerClient]  [marker:invoker_docker.logs_finish:16559:51]
+[2021-04-21T15:28:00.633Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [ContainerProxy]  [marker:invoker_collectLogs_finish:16562:55]
+[2021-04-21T15:28:00.637Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [MemoryArtifactStore] [PUT] 'activations' saving document: 'id: guest/f149f7477a364aa689f7477a369aa622, rev: null' [marker:database_saveDocument_start:16566]
+[2021-04-21T15:28:00.689Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [MemoryArtifactStore]  [marker:database_saveDocument_finish:16617:51]
+[2021-04-21T15:28:00.690Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [MessagingActiveAck] posted completion of activation f149f7477a364aa689f7477a369aa622
+[2021-04-21T15:28:00.693Z] [INFO] [#tid_ShCHwX5jqB5wwvGpMfeu3gyf0jPPurIl] [LeanBalancer] received completion ack for 'f149f7477a364aa689f7477a369aa622', system error=false
+[2021-04-21T15:28:00.752Z] [INFO] [#tid_sid_invokerNanny] [DockerClientWithFileAccess] running /usr/bin/docker pause 99a4e3c4f6a23d53ba5bfe1dcd05e2249e1f7771dfe0a2bf7fa540e46674e879 (timeout: 10 seconds) [marker:invoker_docker.pause_start:60153]lone:bootRun
+[2021-04-21T15:28:00.803Z] [INFO] [#tid_sid_invokerNanny] [DockerClientWithFileAccess]  [marker:invoker_docker.pause_finish:60203:50]
+
+
+
+[2021-04-21T15:29:32.449Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [InvokerReactive]  [marker:invoker_activation_start:10]
+[2021-04-21T15:29:32.449Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [WhiskAction] [GET] serving from cache: CacheKey(guest/helloGo) [marker:database_cacheHit_counter:10]
+(transid: ,#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ)
+(action: ,guest/helloGo@0.0.1)
+( revision: ,sha256-32c6341998fbea8c50ee4ef0e5210f8596954697ac90e5af405c515fcdca091b)
+(activationId: ,c9f67f87adb7430eb67f87adb7e30e97)
+(blocking:  ,true)
+(content: ,Some({"name":"li"}))
+ExecutableWhiskAction/guest/helloGo@0.0.1
+namespace  guest
+name   helloGo
+ exec, {"kind":"go:1.15","code":"package main\n\nimport \"fmt\"\n\n// Main function for the action\nfunc Main(obj map[string]interface{}) map[string]interface{} {\n\tname, ok := obj[\"name\"].(string)\n\tif !ok {\n\t\tname = \"stranger\"\n\t}\n\tfmt.Printf(\"name=%s\\n\", name)\n\tmsg := make(map[string]interface{})\n\tmsg[\"msg\"] = \"Hello, \" + name + \"!\"\n\treturn msg\n}\n","binary":false}
+  parameters: []
+ limits: {"concurrency":1,"logs":10,"memory":256,"timeout":60000}
+  version: 0.0.1
+  publish: false
+  annotations: [{"key":"provide-api-key","value":false},{"key":"exec","value":"go:1.15"}]
+  binding: None
+
+[2021-04-21T15:29:32.450Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [ContainerPool] containerStart containerState: warmed container: Some(ContainerId(99a4e3c4f6a23d53ba5bfe1dcd05e2249e1f7771dfe0a2bf7fa540e46674e879)) activations: 1 of max 1 action: helloGo namespace: guest activationId: c9f67f87adb7430eb67f87adb7e30e97 [marker:invoker_containerStart.warmed_counter:11]
+[2021-04-21T15:29:32.451Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [DockerClientWithFileAccess] running /usr/bin/docker unpause 99a4e3c4f6a23d53ba5bfe1dcd05e2249e1f7771dfe0a2bf7fa540e46674e879 (timeout: 10 seconds) [marker:invoker_docker.unpause_start:11]
+[2021-04-21T15:29:32.504Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [DockerClientWithFileAccess]  [marker:invoker_docker.unpause_finish:65:54]
+[2021-04-21T15:29:32.506Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [DockerContainer] sending arguments to /guest/helloGo at ContainerId(99a4e3c4f6a23d53ba5bfe1dcd05e2249e1f7771dfe0a2bf7fa540e46674e879) ContainerAddress(172.17.0.4,8080) [marker:invoker_activationRun_start:67]
+[2021-04-21T15:29:32.510Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [DockerContainer] running result: ok [marker:invoker_activationRun_finish:71:3]
+[2021-04-21T15:29:32.511Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [ContainerProxy]  [marker:invoker_collectLogs_start:71]
+[2021-04-21T15:29:32.511Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [ExtendedDockerClient] running /usr/bin/docker logs 99a4e3c4f6a23d53ba5bfe1dcd05e2249e1f7771dfe0a2bf7fa540e46674e879 --since 1618990172 --until 1618990173 --timestamps (timeout: 2 seconds) [marker:invoker_docker.logs_start:72]
+[2021-04-21T15:29:32.512Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [MessagingActiveAck] posted result of activation c9f67f87adb7430eb67f87adb7e30e97
+[2021-04-21T15:29:32.514Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [LeanBalancer] received result ack for 'c9f67f87adb7430eb67f87adb7e30e97'
+[2021-04-21T15:29:32.514Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [ActionsApi]  [marker:controller_blockingActivation_finish:75:68]
+[2021-04-21T15:29:32.515Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [BasicHttpService] [marker:http_post.200_counter:76:76]
+[2021-04-21T15:29:32.557Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [ExtendedDockerClient]  [marker:invoker_docker.logs_finish:118:46]
+[2021-04-21T15:29:32.558Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [ContainerProxy]  [marker:invoker_collectLogs_finish:118:46]
+[2021-04-21T15:29:32.560Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [MemoryArtifactStore] [PUT] 'activations' saving document: 'id: guest/c9f67f87adb7430eb67f87adb7e30e97, rev: null' [marker:database_saveDocument_start:120]
+[2021-04-21T15:29:32.561Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [MemoryArtifactStore]  [marker:database_saveDocument_finish:121:0]
+[2021-04-21T15:29:32.561Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [MessagingActiveAck] posted completion of activation c9f67f87adb7430eb67f87adb7e30e97
+[2021-04-21T15:29:32.562Z] [INFO] [#tid_noZo1KUPtn5tkv6ZAnK3MHiuj21i7OPJ] [LeanBalancer] received completion ack for 'c9f67f87adb7430eb67f87adb7e30e97', system error=false
+[2021-04-21T15:29:32.630Z] [INFO] [#tid_sid_invokerNanny] [DockerClientWithFileAccess] running /usr/bin/docker pause 99a4e3c4f6a23d53ba5bfe1dcd05e2249e1f7771dfe0a2bf7fa540e46674e879 (timeout: 10 seconds) [marker:invoker_docker.pause_start:152031]
+[2021-04-21T15:29:32.684Z] [INFO] [#tid_sid_invokerNanny] [DockerClientWithFileAccess]  [marker:invoker_docker.pause_finish:152085:54]
+
+
+rm -f /tmp/firecracker.socket
+~/firecracker/firecracker --api-sock /tmp/firecracker.socket
+
+./firecracker --api-sock /tmp/firecracker.socket
+
+ curl --unix-socket /tmp/firecracker.socket -i \
+      -X PUT 'http://localhost/boot-source'   \
+      -H 'Accept: application/json'           \
+      -H 'Content-Type: application/json'     \
+      -d "{
+            \"kernel_image_path\": \"/home/xiaox/firecracker/hello-vmlinux.bin\",
+            \"boot_args\": \"console=ttyS0 reboot=k panic=1 pci=off\"
+       }"
+
+
+  rootfs_path="/home/xiaox/firecracker/hello-rootfs.ext4"
+  # rootfs_path="/home/xiaox/firecracker/rootfs.ext4"
+  curl --unix-socket /tmp/firecracker.socket -i \
+   -X PUT 'http://localhost/drives/rootfs' \
+   -H 'Accept: application/json'           \
+   -H 'Content-Type: application/json'     \
+   -d "{
+         \"drive_id\": \"rootfs\",
+         \"path_on_host\": \"${rootfs_path}\",
+         \"is_root_device\": true,
+         \"is_read_only\": false
+    }"
+
+
+
+curl --unix-socket /tmp/firecracker.socket -i \
+  -X PUT 'http://localhost/network-interfaces/eth0' \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+      "iface_id": "eth0",
+      "guest_mac": "AA:FC:00:00:00:01",
+      "host_dev_name": "tap0"
+    }'
+
+curl --unix-socket /tmp/firecracker.socket -i  \
+  -X PUT 'http://localhost/machine-config' \
+  -H 'Accept: application/json'            \
+  -H 'Content-Type: application/json'      \
+  -d '{
+      "vcpu_count": 2,
+      "mem_size_mib": 2048,
+      "ht_enabled": false
+  }'
+
+curl --unix-socket /tmp/firecracker.socket -i \
+  -X PUT 'http://localhost/actions'       \
+  -H  'Accept: application/json'          \
+  -H  'Content-Type: application/json'    \
+  -d '{
+      "action_type": "InstanceStart"
+   }'
+
+
+
+
+cd tools/ignite/nodejs
+docker build -t whisk/ignite-nodejs-v12:latest  .
+
+./gradlew :core:standalone:build
+
+sudo java -Dwhisk.spi.ContainerFactoryProvider=org.apache.openwhisk.core.containerpool.ignite.IgniteContainerFactoryProvider \
+      -jar bin/openwhisk-standalone.jar \
+      -m tools/ignite/ignite-runtimes.json
+
+
+rootf
+
+wget -c http://cdimage.ubuntu.com/ubuntu-base/releases/20.04.1/release/ubuntu-base-20.04-base-amd64.tar.gz
+
+fallocate -l 2G rootfs.ext4
+sudo mkfs.ext4 rootfs.ext4
+
+mkdir /tmp/my-rootfs
+sudo mount -o loop rootfs.ext4 /tmp/my-rootfs
+sudo tar -xzvf ubuntu-base-20.04.1-base-amd64.tar.gz -C /tmp/my-rootfs
+
+// sudo umount /tmp/my-rootfs
+
+
+https://blog.csdn.net/wj78080458/article/details/83851147
+
+rise  rootfs
+
+resize2fs -f ./hello-r* 5120000
+
+congfig net host guest   // ens33
+
+
+sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/re
+positories
+
+
+
+Monitoring
+Firecracker emits logs and metric counters, each on a named pipe that is passed via the API.
+Logs are flushed line by line, whereas metrics are emitted when the instance starts,
+then every 60 seconds while it's running, and on panic.
+Firecracker customers are responsible for collecting data in the Firecracker log files.
+ In production builds, Firecracker does not expose the serial console port,
+ since it may contain guest data that the host should not see.
+
+
+ ignite
+
+ ignite image import weaveworks/ignite-ubuntu
+
+ import start run stop rm rmi rmk
+
+ignite create weaveworks/ignite-ubuntu \
+  --name my-vm \
+  --cpus 2 \
+  --memory 1GB \
+  --size 6GB \
+  --ssh
+
+
+ignite run weaveworks/ignite-ubuntu \
+  --name another-vm \
+  --cpus 2 \
+  --memory 1GB \
+  --size 6GB \
+  --ssh \
+  --interactive
+
