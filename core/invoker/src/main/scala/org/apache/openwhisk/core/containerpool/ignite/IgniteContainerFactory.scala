@@ -2,12 +2,13 @@ package org.apache.openwhisk.core.containerpool.ignite
 
 import akka.actor.ActorSystem
 import org.apache.openwhisk.common.{Logging, TransactionId}
-import org.apache.openwhisk.core.containerpool.docker.DockerClientWithFileAccess
 import org.apache.openwhisk.core.{ConfigKeys, WhiskConfig}
 import org.apache.openwhisk.core.containerpool.{Container, ContainerFactory, ContainerFactoryProvider}
 import org.apache.openwhisk.core.entity.{ByteSize, ExecManifest, InvokerInstanceId}
 import pureconfig._
 import pureconfig.generic.auto._
+
+import java.util.concurrent.TimeoutException
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 
@@ -18,12 +19,12 @@ object IgniteContainerFactoryProvider extends ContainerFactoryProvider {
                         instanceId: InvokerInstanceId,
                         parameters: Map[String, Set[String]]): ContainerFactory = {
     //Ignore parameters as they are  specific for Docker based creation. They do not map to Ignite
-    val dockerClient = new DockerClientWithFileAccess()(actorSystem.dispatcher)(logging, actorSystem)
+
     new IgniteContainerFactory(instanceId)(
       actorSystem,
       actorSystem.dispatcher,
       logging,
-      new IgniteClientClient(dockerClient)(actorSystem.dispatcher, actorSystem, logging))
+      new IgniteClient()(actorSystem.dispatcher, actorSystem, logging))
   }
 }
 
@@ -36,7 +37,8 @@ class IgniteContainerFactory(instance: InvokerInstanceId)(implicit actorSystem: 
                                                           logging: Logging,
                                                           ignite: IgniteClientApi,
                                                           igniteConfig: IgniteConfig =
-                                                          loadConfigOrThrow[IgniteConfig](ConfigKeys.ignite))
+                                                          loadConfigOrThrow[IgniteConfig](ConfigKeys.ignite)
+)
   extends ContainerFactory {
 
   override def createContainer(tid: TransactionId,
@@ -50,8 +52,8 @@ class IgniteContainerFactory(instance: InvokerInstanceId)(implicit actorSystem: 
 
   override def init(): Unit = {
     println("IgniteContainerFactory init remove all")
-   val rem= removeAllActionContainers()
-    Await.result(rem,20.second)
+    val rem= removeAllActionContainers()
+    println("IgniteContainerFactory init remove all   invokerReactive containerFactory.init finish")
   }
 
 
@@ -65,28 +67,20 @@ class IgniteContainerFactory(instance: InvokerInstanceId)(implicit actorSystem: 
     }
   }
 
+  @throws(classOf[TimeoutException])
+  @throws(classOf[InterruptedException])
   private def removeAllActionContainers()  = {
     implicit val transid = TransactionId.invoker
     val cleaning =
-      ignite.listRunningVMs().flatMap{vms =>
-        val removals= vms.map{vm =>
-          ignite.stopAndRemove(vm.igniteId)
-        }
-        Future.sequence(removals)
+      ignite.ps(filters = Seq("{{.ObjectMeta.Name}}" -> s"~${ContainerFactory.containerNamePrefix(instance)}"), all = true).flatMap {
+        containers =>
+          logging.info(this, s"removing ${containers.size} action containers.")
+          val removals = containers.map { id =>
+            ignite.stopAndRemove(id)
+
+          }
+          Future.sequence(removals)
       }
-
-    cleaning
-
-
-/*      ignite.listRunningVMs().flatMap { vms =>
-        val prefix = s"${ContainerFactory.containerNamePrefix(instance)}_"
-        val ourVms = vms.filter(_.name.startsWith(prefix))
-        logging.info(this, s"removing ${ourVms.size} action containers.")
-        val removals = ourVms.map { vm =>
-          ignite.stopAndRemove(vm.igniteId)
-        }
-        Future.sequence(removals)
-      }*/
-
+    Await.ready(cleaning, 30.seconds)
   }
 }

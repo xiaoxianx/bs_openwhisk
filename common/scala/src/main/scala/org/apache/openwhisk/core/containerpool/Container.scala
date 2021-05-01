@@ -157,6 +157,9 @@ trait Container {
           timeout: FiniteDuration,
           maxConcurrent: Int,
           reschedule: Boolean = false)(implicit transid: TransactionId): Future[(Interval, ActivationResponse)] = {
+
+    println(s"container run code  para:$parameters\n env: $environment ")
+
     val actionName = environment.fields.get("action_name").map(_.convertTo[String]).getOrElse("")
     val start =
       transid.started(

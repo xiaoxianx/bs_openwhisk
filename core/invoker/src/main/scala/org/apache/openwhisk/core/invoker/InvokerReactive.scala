@@ -96,7 +96,8 @@ class InvokerReactive(
 
   println("invokerReactive containerFactory.init begin")
   containerFactory.init()
-  println("invokerReactive containerFactory.init finish")
+  Thread.sleep(20000) // 可能导致prewarm的被删掉 不去改接口future了
+
 
   CoordinatedShutdown(actorSystem)
     .addTask(CoordinatedShutdown.PhaseBeforeActorSystemTerminate, "cleanup runtime containers") { () =>

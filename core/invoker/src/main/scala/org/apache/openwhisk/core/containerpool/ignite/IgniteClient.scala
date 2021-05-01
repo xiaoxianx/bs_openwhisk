@@ -19,22 +19,17 @@ package org.apache.openwhisk.core.containerpool.ignite
 
 import java.io.FileNotFoundException
 import java.nio.file.{Files, Paths}
-
 import akka.actor.ActorSystem
 import akka.event.Logging.{ErrorLevel, InfoLevel}
 import org.apache.openwhisk.common.{Logging, LoggingMarkers, MetricEmitter, TransactionId}
 import org.apache.openwhisk.core.ConfigKeys
-import org.apache.openwhisk.core.containerpool.docker.{
-  DockerClient,
-  DockerClientConfig,
-  ProcessRunner,
-  ProcessTimeoutException
-}
+import org.apache.openwhisk.core.containerpool.docker.{ProcessRunner, ProcessTimeoutException}
 import org.apache.openwhisk.core.containerpool.{ContainerAddress, ContainerId}
 import pureconfig._
 import pureconfig.generic.auto._
+
 import scala.collection.concurrent.TrieMap
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, DurationInt}
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
@@ -52,16 +47,14 @@ case class IgniteClientConfig(timeouts: IgniteTimeoutConfig)
   ignite = "whisk.ignite"
   igniteClient = s"$ignite.client"
   */
-class IgniteClientClient(dockerClient: DockerClient,
-                         config: IgniteClientConfig = loadConfigOrThrow[IgniteClientConfig](ConfigKeys.igniteClient),
-                         dockerConfig: DockerClientConfig = loadConfigOrThrow[DockerClientConfig](ConfigKeys.dockerClient))(
+class IgniteClient( config: IgniteClientConfig = loadConfigOrThrow[IgniteClientConfig](ConfigKeys.igniteClient))(
                     override implicit val executionContext: ExecutionContext,
                     implicit val system: ActorSystem,
                     implicit val log: Logging)
   extends IgniteClientApi
     with ProcessRunner {
 
-  protected val igniteCmd: Seq[String] = {
+  protected val igniteBin: Seq[String] = {
     val alternatives = List("/usr/bin/ignite", "/usr/local/bin/ignite")
 
     val dockerBin = Try {
@@ -69,7 +62,7 @@ class IgniteClientClient(dockerClient: DockerClient,
     } getOrElse {
       throw new FileNotFoundException(s"Couldn't locate ignite binary (tried: ${alternatives.mkString(", ")}).")
     }
-    Seq(dockerBin, "-q")
+    Seq(dockerBin)
   }
 
   // Invoke ignite CLI to determine client version.
@@ -77,7 +70,7 @@ class IgniteClientClient(dockerClient: DockerClient,
   // Rationale: if we cannot invoke `ignite version` successfully, it is unlikely subsequent `ignite` invocations will succeed.
   protected def getClientVersion(): String = {
     //TODO Ignite currently does not support formatting. So just get and log the verbatim version details
-    val vf = executeProcess(igniteCmd ++ Seq("version"), config.timeouts.version)
+    val vf = executeProcess(igniteBin ++ Seq("version"), config.timeouts.version)
       .andThen {
         case Success(version) => log.info(this, s"Detected ignite client version $version")
         case Failure(e) =>
@@ -88,7 +81,7 @@ class IgniteClientClient(dockerClient: DockerClient,
   val clientVersion: String = getClientVersion()
 
   protected def runCmd(args: Seq[String], timeout: Duration)(implicit transid: TransactionId): Future[String] = {
-    val cmd = igniteCmd ++ args
+    val cmd = igniteBin ++ args
     val start = transid.started(
       this,
       LoggingMarkers.INVOKER_IGNITE_CMD(args.head),
@@ -104,10 +97,22 @@ class IgniteClientClient(dockerClient: DockerClient,
     }
   }
 
+
+     def inspectIPAddress(id: IgniteId)(implicit transid: TransactionId): Future[ContainerAddress] =
+    runCmd(
+      Seq("inspect", "vm",id.asString,"-t","{{.Status.Network.IPAddresses}}"),
+      config.timeouts.inspect).flatMap {
+      case "<no value>" => Future.failed(new NoSuchElementException)
+      case stdout       => Future.successful(ContainerAddress(stdout))
+    }
+
+  /*
+
   override def inspectIPAddress(containerId: ContainerId)(implicit transid: TransactionId): Future[ContainerAddress] =
     dockerClient.inspectIPAddress(containerId, "bridge")
+*/
 
-  override def containerId(igniteId: IgniteId)(implicit transid: TransactionId): Future[ContainerId] = {
+/*  override def containerId(igniteId: IgniteId)(implicit transid: TransactionId): Future[ContainerId] = {
     //Each ignite vm would be backed by a Docker container whose name would be `ignite-<vm id>`
     //Use that to find the backing containerId
     dockerClient
@@ -116,21 +121,21 @@ class IgniteClientClient(dockerClient: DockerClient,
         case "<no value>" => Future.failed(new NoSuchElementException)
         case stdout       => Future.successful(ContainerId(stdout))
       }
-  }
+  }*/
 
   override def run(image: String, args: Seq[String])(implicit transid: TransactionId): Future[IgniteId] = {
-    runCmd(Seq("run", image) ++ args, config.timeouts.run).map(IgniteId.apply)
+    runCmd(Seq("run","-q", image) ++ args, config.timeouts.run).map(IgniteId.apply)
   }
 
   private val importedImages = new TrieMap[String, Boolean]()
   private val importsInFlight = TrieMap[String, Future[Boolean]]()
   override def importImage(image: String)(implicit transid: TransactionId): Future[Boolean] = {
-    //TODO Add support for latest
+
     if (importedImages.contains(image)) Future.successful(true)
     else {
       importsInFlight.getOrElseUpdate(
         image, {
-          runCmd(Seq("image", "import", image), config.timeouts.create)
+          runCmd(Seq("image", "import","-q", image), config.timeouts.create)
             .map { stdout =>
               log.info(this, s"Imported image $image - $stdout")
               true
@@ -145,26 +150,30 @@ class IgniteClientClient(dockerClient: DockerClient,
   }
 
   override def rm(igniteId: IgniteId)(implicit transid: TransactionId): Future[Unit] = {
-    runCmd(Seq("vm", "rm", igniteId.asString), config.timeouts.rm).map(_ => ())
+    runCmd(Seq("vm", "rm", igniteId.asString.trim), config.timeouts.rm).map(_ => ())
   }
 
   override def stop(igniteId: IgniteId)(implicit transid: TransactionId): Future[Unit] =
-    runCmd(Seq("vm", "stop", igniteId.asString), config.timeouts.rm).map(_ => ())
+    runCmd(Seq("vm", "stop", igniteId.asString.trim), config.timeouts.rm).map(_ => ())
 
-  override def listRunningVMs()(implicit transid: TransactionId): Future[Seq[VMInfoQuiet]] = {
+  override def listRunningVMs()(implicit transid: TransactionId): Future[Seq[VMInfo]] = {
     //Each ignite vm has a backing container whose label is set to vm name and name to vm id
-    //val filter = "--format='{{.ID }}|{{ .Label \"ignite.name\" }}|{{.Names}}'"
-    //val cmd = Seq("ps", "--no-trunc", filter)
-    //runCmd(cmd, config.timeouts.ps).map(_.linesIterator.toSeq.map(VMInfo.apply))
-    val cmd = Seq("ps")
-    runCmd(cmd, config.timeouts.ps).map(_.linesIterator.toSeq.map(VMInfoQuiet.apply))
+    val filter = "--format='{{.ID }}|{{ .Label \"ignite.name\" }}|{{.Names}}'"
+    val cmd = Seq("ps", "--no-trunc", filter)
+    runCmd(cmd, config.timeouts.ps).map(_.linesIterator.toSeq.map(VMInfo.apply))
+  }
 
+  override def ps(filters: Seq[(String, String)], all: Boolean)(
+    implicit transid: TransactionId): Future[Seq[IgniteId]] ={
+    val filterArgs = filters.flatMap { case (attr, value) => Seq("--filter", s"$attr=$value") }
+    val allArg = if (all) Seq("--all") else Seq.empty[String]
+    val cmd = Seq("ps", "--quiet") ++ allArg ++ filterArgs
+    runCmd(cmd, config.timeouts.ps).map(_.linesIterator.toSeq.map(IgniteId.apply))
   }
 }
 
+// the information when use   ignite ps
 case class VMInfo(containerId: ContainerId, igniteId: IgniteId, name: String)
-case class VMInfoQuiet(igniteId: IgniteId)
-
 object VMInfo {
   def apply(value: String): VMInfo = {
     val Array(conatinerId, name, vmId) = value.split("|")
@@ -173,18 +182,13 @@ object VMInfo {
   }
 }
 
-object VMInfoQuiet {
-  def apply(value: String): VMInfoQuiet = {
-    new VMInfoQuiet(IgniteId(value.trim))
-  }
-}
 
 trait IgniteClientApi {
   protected implicit val executionContext: ExecutionContext
 
-  def inspectIPAddress(containerId: ContainerId)(implicit transid: TransactionId): Future[ContainerAddress]
+  def inspectIPAddress(containerId: IgniteId)(implicit transid: TransactionId): Future[ContainerAddress]
 
-  def containerId(igniteId: IgniteId)(implicit transid: TransactionId): Future[ContainerId]
+  //def containerId(igniteId: IgniteId)(implicit transid: TransactionId): Future[ContainerId]
 
   def run(image: String, args: Seq[String])(implicit transid: TransactionId): Future[IgniteId]
 
@@ -194,12 +198,21 @@ trait IgniteClientApi {
 
   def stop(igniteId: IgniteId)(implicit transid: TransactionId): Future[Unit]
 
-  def listRunningVMs()(implicit transid: TransactionId): Future[Seq[VMInfoQuiet]]
+  def listRunningVMs()(implicit transid: TransactionId): Future[Seq[VMInfo]]
+
+  def ps(filters: Seq[(String, String)] = Seq.empty, all: Boolean = false)(
+    implicit transid: TransactionId): Future[Seq[IgniteId]]
 
   def stopAndRemove(igniteId: IgniteId)(implicit transid: TransactionId): Future[Unit] = {
+    val a =stop(igniteId)  // 意外 stoped 的do stop  can be ignore
+    Await.result(a,10.second )
     for {
-      _ <- stop(igniteId)
       _ <- rm(igniteId)
     } yield Unit
+  }
+
+  // todo NEED?
+  def isOomKilled(id: IgniteId)(implicit transid: TransactionId): Future[Boolean]={
+    Future.successful(false)
   }
 }
