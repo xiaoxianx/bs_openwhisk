@@ -39,6 +39,9 @@ sudo wsk action create hello-go hello.go
 sudo wsk action invoke hello-go --param name li
 sudo wsk action invoke helloGo --result --param name li
 
+sudo wsk action create hellojs hello.js
+sudo wsk action invoke hellojs --result --param name Li
+
 sudo wskdeploy -m manifest.yaml
 
 

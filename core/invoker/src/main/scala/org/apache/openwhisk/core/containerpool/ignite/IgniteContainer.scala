@@ -47,10 +47,13 @@ object IgniteContainer {
     val args : Seq[String]= Seq("--cpus", config.defaultRunResource("cpu"), "--memory", s"${memory.toMB}m", "--size",  config.defaultRunResource("size")) ++ name
       .map(n => Seq("--name", n))
       .getOrElse(Seq.empty) ++ params
-    //TODO
+    //TODO  only support js
     // val imageToUse = image.merge.resolveImageName(Some(registryConfigUrl))
-    val imageToUse =image.resolveImageName()
+   // val imageToUse =image.resolveImageName()
+    val imageToUse="whisk/ignite-nodejs-v12:latest"
+    //val imageToUse=
     println(s"ignite container creat  imageToUse: $imageToUse   imageName: ${image.name}    *${image.prefix}*${image.registry}*${image.tag}")
+    // imageName: action-nodejs-v10    *Some(openwhisk)*None*Some(nightly)
 
     for {
       importSuccessful <- ignite.importImage(imageToUse)
