@@ -20,8 +20,8 @@ package org.apache.openwhisk.core.containerpool
 import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.Cancellable
-import java.time.Instant
 
+import java.time.Instant
 import akka.actor.Status.{Failure => FailureMessage}
 import akka.actor.{FSM, Props, Stash}
 import akka.event.Logging.InfoLevel
@@ -35,9 +35,9 @@ import akka.pattern.pipe
 import pureconfig.loadConfigOrThrow
 import pureconfig.generic.auto._
 import akka.stream.ActorMaterializer
+
 import java.net.InetSocketAddress
 import java.net.SocketException
-
 import org.apache.openwhisk.common.MetricEmitter
 import org.apache.openwhisk.common.TransactionId.systemPrefix
 
@@ -47,12 +47,7 @@ import spray.json._
 import org.apache.openwhisk.common.{AkkaLogging, Counter, LoggingMarkers, TransactionId}
 import org.apache.openwhisk.core.ConfigKeys
 import org.apache.openwhisk.core.ack.ActiveAck
-import org.apache.openwhisk.core.connector.{
-  ActivationMessage,
-  CombinedCompletionAndResultMessage,
-  CompletionMessage,
-  ResultMessage
-}
+import org.apache.openwhisk.core.connector.{ActivationMessage, CombinedCompletionAndResultMessage, CompletionMessage, ResultMessage}
 import org.apache.openwhisk.core.containerpool.logging.LogCollectingException
 import org.apache.openwhisk.core.database.UserContext
 import org.apache.openwhisk.core.entity.ExecManifest.ImageName
@@ -61,7 +56,8 @@ import org.apache.openwhisk.core.entity.size._
 import org.apache.openwhisk.core.invoker.Invoker.LogsCollector
 import org.apache.openwhisk.http.Messages
 
-import scala.concurrent.Future
+import java.util.regex.Pattern
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -76,9 +72,80 @@ case object Pausing extends ContainerState
 case object Paused extends ContainerState
 case object Removing extends ContainerState
 
+class memInfo(){
+  //todo   put config  .conf    小可能 oom 处理
+  
+  // mem
+  var total =0
+  var base =0
+  var  available =0
+  var  funcUsed =0
+  var   forFuncUse=0  // totalDecBase
+  var memPerFunc=0  //  estimate
+  
+  var scalLimiteInited =false
+  val memBlockSize = 32*1024
+  val scaleFactor = 0.5
+/*  val expandLoadFactor = 0.8
+  val shrinkFactor  = 0.5
+  val targetFactor  = 0.6*/
+  var expandLimit = 5
+  var curBlockNum = 0
+  var shrinkLimit = 0
+  var funcNumPerMemBlock = 0
+
+
+  /*
+      MemTotal:        8124436 kB
+      MemFree:          941276 kB
+      MemAvailable:    1615956 kB
+  */
+  val pattern: Pattern =Pattern.compile("\\D*(\\d*)\\D*(\\d*)\\D*(\\d*)\\D")
+  def update( s : String,init : Boolean)={
+    //, expand_T_shrink_F: Boolean
+    val m =pattern.matcher(s)
+    if(m.find()) {
+      total=m.group(1).toInt
+      available=m.group(3).toInt
+     if(init) {
+       base=total-available
+     }
+      forFuncUse =total - base
+      funcUsed = forFuncUse - available
+      curBlockNum = forFuncUse/memBlockSize
+
+      if(!init) {
+          memPerFunc = funcUsed/expandLimit
+          funcNumPerMemBlock = memBlockSize/memPerFunc
+
+        // lazy
+          expandLimit = curBlockNum*funcNumPerMemBlock-(funcNumPerMemBlock*scaleFactor).toInt
+          shrinkLimit = expandLimit-3*funcNumPerMemBlock
+          scalLimiteInited=true
+      }
+    }else{
+      println("ContainerProxy update      memInfo parse err")
+    }
+
+    println(s"mem update total:$total  base: $base  used: $funcUsed  available: $available")
+    println(s"estimate memPerFunc:$memPerFunc  funcNumPerMemBlock: $funcNumPerMemBlock  expandLimit: $expandLimit  shrinkLimit: $shrinkLimit")
+  }
+
+  def needExpand : Boolean={
+    available < 0.5 *memBlockSize
+  }
+
+  def needShrink: Boolean={
+    available > 3.5 *memBlockSize
+  }
+
+}
+
 // Data
 /** Base data type */
 sealed abstract class ContainerData(val lastUsed: Instant, val memoryLimit: ByteSize, val activeActivationCount: Int) {
+
+  var memInfo : memInfo = new memInfo()
 
   /** When ContainerProxy in this state is scheduled, it may result in a new state (ContainerData)*/
   def nextRun(r: Run): ContainerData
@@ -118,8 +185,8 @@ sealed abstract class ContainerStarted(val container: Container,
 sealed abstract trait ContainerInUse {
   val activeActivationCount: Int
   val action: ExecutableWhiskAction
-  def hasCapacity() =
-    activeActivationCount < action.limits.concurrency.maxConcurrent
+  def hasCapacity() = true
+   // activeActivationCount < action.limits.concurrency.maxConcurrent
 }
 
 /** trait representing a container that is NOT in use and is usable by subsequent activation(s) */
@@ -273,6 +340,7 @@ class ContainerProxy(factory: (TransactionId,
   var runBuffer = immutable.Queue.empty[Run] //does not retain order, but does manage jobs that would have pushed past action concurrency limit
   //track buffer processing state to avoid extra transitions near end of buffer - this provides a pseudo-state between Running and Ready
   var bufferProcessing = false
+  var isScaling = false
 
   //keep a separate count to avoid confusion with ContainerState.activeActivationCount that is tracked/modified only in ContainerPool
   var activeCount = 0;
@@ -282,7 +350,7 @@ class ContainerProxy(factory: (TransactionId,
   startWith(Uninitialized, NoData())
 
   when(Uninitialized) {
-    // pre warm a container (creates a stem cell container)
+    // only from prewarm (默认的你nodejs 预热，不是新单个容器预热) pre warm a container (creates a stem cell container)
     case Event(job: Start, _) =>
       factory(
         TransactionId.invokerWarmup,
@@ -320,8 +388,11 @@ class ContainerProxy(factory: (TransactionId,
           case Success(container) =>
             // the container is ready to accept an activation; register it as PreWarmed; this
             // normalizes the life cycle for containers and their cleanup when activations fail
-            self ! PreWarmCompleted(
-              PreWarmedData(container, job.action.exec.kind, job.action.limits.memory.megabytes.MB, 1, expires = None))
+            val data =PreWarmedData(container, job.action.exec.kind, job.action.limits.memory.megabytes.MB, 1, expires = None)
+            //todo init Mem
+            data.memInfo.update(Await.result(container.getMemInfo(),10.seconds),true)
+            println("init Mem finish")
+            self ! PreWarmCompleted(data)
 
           case Failure(t) =>
             // the container did not come up cleanly, so disambiguate the failure mode and then cleanup
@@ -419,7 +490,38 @@ class ContainerProxy(factory: (TransactionId,
 
     // Run was successful
     case Event(RunCompleted, data: WarmedData) =>
-      activeCount -= 1
+      activeCount -= 1  // todo  shrink
+      println(s"activeCountt $activeCount      running case  RunCompleted, data: WarmedData")
+      val tansaId = TransactionId.apply("shrink", false)
+      if(activeCount < data.memInfo.shrinkLimit) {
+          if(! isScaling){
+            isScaling=true
+            val container=data.getContainer.get
+              container.getMemInfo()(tansaId).andThen{
+              case Success(s) =>{
+                data.memInfo.update(s,false)
+                if(data.memInfo.needShrink) {
+                  println(s"need shrink  ${container.containerId.asString}")
+                  container.changeMemory(-data.memInfo.memBlockSize)(tansaId).andThen{
+                    case Success(value) =>{
+                      val newMem= Await.result(container.getMemInfo()(tansaId),10.seconds)
+                      data.memInfo.update(newMem,false)
+                      println("shrink success")
+                      isScaling=false
+                    }
+                    case Failure(exception)=>{
+                      println("shrink fail")
+                      isScaling=false
+                    }
+                  }
+                }
+              }
+              case Failure(exception)=>{
+                println("getMemInfo fail")
+              }
+            }
+          }
+      }
       val newData = data.withoutResumeRun()
       //if there are items in runbuffer, process them if there is capacity, and stay; otherwise if we have any pending activations, also stay
       if (requestWork(data) || activeCount > 0) {
@@ -427,17 +529,50 @@ class ContainerProxy(factory: (TransactionId,
       } else {
         goto(Ready) using newData
       }
-    case Event(job: Run, data: WarmedData)
+/*    case Event(job: Run, data: WarmedData)
         if activeCount >= data.action.limits.concurrency.maxConcurrent && !rescheduleJob => //if we are over concurrency limit, and not a failure on resume
       implicit val transid = job.msg.transid
       logging.warn(this, s"buffering for maxed warm container ${data.container}; ${activeCount} activations in flight")
       runBuffer = runBuffer.enqueue(job)
-      stay()
+      stay()*/
     case Event(job: Run, data: WarmedData)
-        if activeCount < data.action.limits.concurrency.maxConcurrent && !rescheduleJob => //if there was a delay, and not a failure on resume, skip the run
-      activeCount += 1
+      //if activeCount < data.action.limits.concurrency.maxConcurrent && !rescheduleJob => //if there was a delay, and not a failure on resume, skip the run
+      if !rescheduleJob =>
+      activeCount += 1  // todo  expand
+      println(s"activeCountt $activeCount      running case  job: Run, data: WarmedData")
+      if(activeCount > data.memInfo.expandLimit) {
+        if(! isScaling){
+          isScaling=true
+          val container=data.getContainer.get
+          val tansaId = TransactionId.apply(" expand", false)
+          container.getMemInfo()(tansaId).andThen{
+            case Success(s) =>{
+              data.memInfo.update(s,false)
+              if(data.memInfo.needExpand) {
+                println(s"needExpand  ${container.containerId.asString}")
+                container.changeMemory(data.memInfo.memBlockSize)(tansaId).andThen{
+                  case Success(value) =>{
+                   val newMem= Await.result(container.getMemInfo()(tansaId),10.seconds)
+                    data.memInfo.update(newMem,false)
+                    println("Expand success")
+                    isScaling=false
+                  }
+                  case Failure(exception)=>{
+                    println("Expand fail")
+                    isScaling=false
+                  }
+                }
+              }
+            }
+            case Failure(exception)=>{
+              println("getMemInfo fail")
+            }
+          }
+        }
+      }
       implicit val transid = job.msg.transid
       bufferProcessing = false //reset buffer processing state
+      println("initializeAndRun")
       initializeAndRun(data.container, job)
         .map(_ => RunCompleted)
         .pipeTo(self)
@@ -466,7 +601,6 @@ class ContainerProxy(factory: (TransactionId,
       logging.error(
         this,
         s"Failed during init of cold container ${data.getContainer}, queued activations will be aborted.")
-
       activeCount -= 1
       //reuse an existing init failure for any buffered activations that will be aborted
       val r = f.cause match {
@@ -560,7 +694,7 @@ class ContainerProxy(factory: (TransactionId,
       destroyContainer(data, true)
   }
 
-  when(Removing) {
+  when(Removing)           {
     case Event(job: Run, _) =>
       // Send the job back to the pool to be rescheduled
       context.parent ! job

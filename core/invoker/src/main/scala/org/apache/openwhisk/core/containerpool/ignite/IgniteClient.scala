@@ -38,7 +38,8 @@ case class IgniteTimeoutConfig(create: Duration,
                                inspect: Duration,
                                rm: Duration,
                                run: Duration,
-                               ps: Duration)
+                               ps: Duration,
+                               exec: Duration)
 
 case class IgniteClientConfig(timeouts: IgniteTimeoutConfig)
 
@@ -123,8 +124,9 @@ class IgniteClient( config: IgniteClientConfig = loadConfigOrThrow[IgniteClientC
       }
   }*/
 
+    // 16  位id  ， 有其服务 ssh  -q 不只 id
   override def run(image: String, args: Seq[String])(implicit transid: TransactionId): Future[IgniteId] = {
-    runCmd(Seq("run","-q", image) ++ args, config.timeouts.run).map(IgniteId.apply)
+    runCmd(Seq("run","-q", image,"--ssh") ++ args, config.timeouts.run).map(s => s.substring(0,17).trim).map(IgniteId.apply)
   }
 
   private val importedImages = new TrieMap[String, Boolean]()
@@ -170,6 +172,10 @@ class IgniteClient( config: IgniteClientConfig = loadConfigOrThrow[IgniteClientC
     val cmd = Seq("ps", "--quiet") ++ allArg ++ filterArgs
     runCmd(cmd, config.timeouts.ps).map(_.linesIterator.toSeq.map(IgniteId.apply))
   }
+
+  override def exec(containerId: IgniteId, args: Seq[String])(implicit transid: TransactionId): Future[String] = {
+    runCmd(Seq("exec",containerId.asString)++args,config.timeouts.exec)
+  }
 }
 
 // the information when use   ignite ps
@@ -184,6 +190,14 @@ object VMInfo {
 
 
 trait IgniteClientApi {
+
+  def exec(containerId: IgniteId,args: Seq[String])(implicit transid: TransactionId): Future[String]
+
+  def getMemInfo(containerId: IgniteId)(implicit transid: TransactionId): Future[String]={
+   // exec(containerId,Seq("cat","/proc/meminfo","|","grep","^Mem"))
+    exec(containerId,Seq("cat","/proc/meminfo"))
+  }
+
   protected implicit val executionContext: ExecutionContext
 
   def inspectIPAddress(containerId: IgniteId)(implicit transid: TransactionId): Future[ContainerAddress]

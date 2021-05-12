@@ -16,7 +16,8 @@ import spray.json._
 
 import java.util.concurrent.atomic.AtomicLong
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 case class IgniteId(asString: String) {
   require(asString.nonEmpty, "IgniteId must not be empty")
@@ -50,11 +51,16 @@ object IgniteContainer {
     //TODO  only support js
     // val imageToUse = image.merge.resolveImageName(Some(registryConfigUrl))
    // val imageToUse =image.resolveImageName()
-    val imageToUse="whisk/ignite-nodejs-v12:latest"
+   // val imageToUse="whisk/ignite-nodejs-v12:latest"
+    val imageToUse="whisk/ignite-ubuntu-nodejs-v12:latest"
     //val imageToUse=
     println(s"ignite container creat  imageToUse: $imageToUse   imageName: ${image.name}    *${image.prefix}*${image.registry}*${image.tag}")
     // imageName: action-nodejs-v10    *Some(openwhisk)*None*Some(nightly)
 
+
+
+    // // 这里之前 shh deamon没启动 就返回  igniteId了
+    //  或者启动了 -q 还是多数出信息，要解析出 id
     for {
       importSuccessful <- ignite.importImage(imageToUse)
       igniteId <- ignite.run(imageToUse, args).recoverWith {
@@ -65,13 +71,38 @@ object IgniteContainer {
             Future.failed(BlackboxStartupError(Messages.imagePullError(imageToUse)))
           }
       }
-      ip <- ignite.inspectIPAddress(igniteId).recoverWith {
+
+      ip <- {
+        var flag=0
+        var a : ContainerAddress=null
+        while(flag<10){
+          Try(Await.result(ignite.inspectIPAddress(igniteId),5.seconds)) match {
+            case Success(res) => {
+              flag=100
+              a=res
+            }
+            case Failure(e) => {
+              flag+=1
+              println(s"start ssh deamon  $flag st try again")
+              Thread.sleep(2000)
+            }
+          }
+        }
+        if (a==null) {
+          ignite.rm(igniteId)
+          Future.failed(WhiskContainerStartupError(Messages.resourceProvisionError))
+        } else {
+          Future.successful(a)
+        }
+      }
+/*      ip <- ignite.inspectIPAddress(igniteId).recoverWith {
         // remove the container immediately if inspect failed as
         // we cannot recover that case automatically
         case _ =>
           ignite.rm(igniteId)
           Future.failed(WhiskContainerStartupError(Messages.resourceProvisionError))
-      }
+      }*/
+
     } yield new IgniteContainer(ip, igniteId)
   }
 
@@ -175,8 +206,14 @@ class IgniteContainer(protected[core] val addr: ContainerAddress, igniteId: Igni
   }
 
 
+  override def getMemInfo()(implicit transid: TransactionId): Future[String] = {
+    ignite.getMemInfo(igniteId)
+  }
 
-
+  override def changeMemory(memBlockSize: Int)(implicit transid: TransactionId): Future[Unit] = {
+    //todo changeMemory
+    Future.successful(():Unit)
+  }
 
 }
 

@@ -229,4 +229,8 @@ class MesosTask(override protected val id: ContainerId,
   override def logs(limit: ByteSize, waitForSentinel: Boolean)(
     implicit transid: TransactionId): Source[ByteString, Any] =
     Source.single(ByteString(LogLine(logMsg, "stdout", Instant.now.toString).toJson.compactPrint))
+
+  override def getMemInfo()(implicit transid: TransactionId): Future[String] = super.getMemInfo()
+
+  override def changeMemory(memBlockSize: Int)(implicit transid: TransactionId): Future[Unit] = super.changeMemory(memBlockSize)
 }

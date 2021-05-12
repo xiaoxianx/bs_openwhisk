@@ -163,13 +163,21 @@ class InvokerReactive(
     ExecManifest.runtimesManifest.stemcells.flatMap {
       case (mf, cells) =>
         cells.map { cell =>
-          PrewarmingConfig(cell.initialCount, new CodeExecAsString(mf, "", None), cell.memory, cell.reactive)
+         // PrewarmingConfig(cell.initialCount, new CodeExecAsString(mf, "", None), cell.memory, cell.reactive)
+          println(s"invoker Reactive      prewarmingConfigs ")
+          println(s"cell.initialCount: ${cell.initialCount}  \n cell.memory ${cell.memory} ")
+          println(s" cell.reactive: ${ cell.reactive} ")
+          println(s" CodeExecAsString  ExecManifest.RuntimeManifest: $mf ")
+          PrewarmingConfig(1, new CodeExecAsString(mf, "", None), cell.memory, cell.reactive)
         }
     }.toList
   }
 
+  // todo
+/*  private val pool =
+    actorSystem.actorOf(ContainerPool.props(childFactory, poolConfig, activationFeed, prewarmingConfigs))*/
   private val pool =
-    actorSystem.actorOf(ContainerPool.props(childFactory, poolConfig, activationFeed, prewarmingConfigs))
+  actorSystem.actorOf(MyPool.props(childFactory, poolConfig, activationFeed, prewarmingConfigs))
 
   def handleActivationMessage(msg: ActivationMessage)(implicit transid: TransactionId): Future[Unit] = {
     val namespace = msg.action.path
