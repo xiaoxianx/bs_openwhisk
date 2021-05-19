@@ -540,6 +540,9 @@ class ContainerProxy(factory: (TransactionId,
       if !rescheduleJob =>
       activeCount += 1  // todo  expand
       println(s"activeCountt $activeCount      running case  job: Run, data: WarmedData")
+/*     val cpuinfo= data.getContainer.get.getCpuInfo()(TransactionId.apply(" expand", false))
+      Await.result(cpuinfo,10.seconds)
+      println(s"cpuinfo used% : $cpuinfo")*/
       if(activeCount > data.memInfo.expandLimit) {
         if(! isScaling){
           isScaling=true

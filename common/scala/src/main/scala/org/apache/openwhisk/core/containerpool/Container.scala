@@ -111,7 +111,13 @@ trait Container {
     println("should scale  ..todo")
     Future.successful((): Unit)
   }
-
+  def getCpuInfo()(implicit transid: TransactionId):Future[String]={
+    Future.successful("s")
+  }
+  def  changeCpus(cpus : Int)(implicit transid: TransactionId): Future[Unit]={
+    println("should scale  ..todo")
+    Future.successful((): Unit)
+  }
   /** Completely destroys this instance of the container. */
   def destroy()(implicit transid: TransactionId): Future[Unit] = {
     closeConnections(httpConnection)

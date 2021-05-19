@@ -41,8 +41,8 @@ sudo wsk action invoke helloGo --result --param name li
 
 sudo wsk action create hellojs hello.js
 sudo wsk action invoke hellojs --result --param name Li
-sudo wsk action create test MemTimeJsTest.js
-sudo wsk action invoke test --result --param name li
+sudo wsk action create test1 MemTimeJsTest.js
+sudo wsk action invoke test1 --result --param name li
 
 sudo wskdeploy -m manifest.yaml
 

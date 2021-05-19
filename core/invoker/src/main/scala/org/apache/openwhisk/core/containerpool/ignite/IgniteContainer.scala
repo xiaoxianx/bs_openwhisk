@@ -139,7 +139,7 @@ class IgniteContainer(protected[core] val addr: ContainerAddress, igniteId: Igni
   private val logMsg = "LogMessage are collected via Docker CLI"
   override def logs(limit: ByteSize, waitForSentinel: Boolean)(
     implicit transid: TransactionId): Source[ByteString, Any] =
-    Source.single(ByteString(LogLine(logMsg, "stdout", Instant.now.toString).toJson.compactPrint))
+    Source.single(ByteString(LogLine(logMsg, "stdout", `Instant`.now.toString).toJson.compactPrint))
 
 
   private def isOomKilled(retries: Int = (waitForOomState / filePollInterval).toInt)(
@@ -152,7 +152,7 @@ class IgniteContainer(protected[core] val addr: ContainerAddress, igniteId: Igni
     Future.successful(false)
   }
 
-  override protected def callContainer(
+  override protected def  callContainer(
                                         path: String,
                                         body: JsObject,
                                         timeout: FiniteDuration,
@@ -210,8 +210,18 @@ class IgniteContainer(protected[core] val addr: ContainerAddress, igniteId: Igni
     ignite.getMemInfo(igniteId)
   }
 
+  override def getCpuInfo()(implicit transid: TransactionId): Future[String] = {
+    ignite.getCpuInfo(igniteId)
+  }
+
+
   override def changeMemory(memBlockSize: Int)(implicit transid: TransactionId): Future[Unit] = {
     //todo changeMemory
+    Future.successful(():Unit)
+  }
+
+  override def changeCpus(cpus: Int)(implicit transid: TransactionId): Future[Unit] = {
+    //todo changeCpus
     Future.successful(():Unit)
   }
 

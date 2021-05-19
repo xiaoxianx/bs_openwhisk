@@ -55,7 +55,7 @@ class IgniteClient( config: IgniteClientConfig = loadConfigOrThrow[IgniteClientC
   extends IgniteClientApi
     with ProcessRunner {
 
-  protected val igniteBin: Seq[String] = {
+  protected val       igniteBin: Seq[String] = {
     val alternatives = List("/usr/bin/ignite", "/usr/local/bin/ignite")
 
     val dockerBin = Try {
@@ -196,6 +196,11 @@ trait IgniteClientApi {
   def getMemInfo(containerId: IgniteId)(implicit transid: TransactionId): Future[String]={
    // exec(containerId,Seq("cat","/proc/meminfo","|","grep","^Mem"))
     exec(containerId,Seq("cat","/proc/meminfo"))
+  }
+
+  def getCpuInfo(containerId: IgniteId)(implicit transid: TransactionId): Future[String]={
+    // app.js
+    exec(containerId,Seq("ps","aux","|","grep","app","|","awk","\'{print $3}\'"))
   }
 
   protected implicit val executionContext: ExecutionContext
